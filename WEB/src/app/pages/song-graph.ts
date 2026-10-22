@@ -1,9 +1,10 @@
-import { Component, EventEmitter, Input, Output, signal } from '@angular/core';
+import { AfterViewInit, Component, ElementRef, EventEmitter, Input, OnDestroy, Output, QueryList, ViewChildren, signal } from '@angular/core';
+import { Subscription } from 'rxjs';
 import { CommonModule } from '@angular/common';
 import { Parte, Song, TRACK_SHORT } from '../data.service';
 
-const ROW_H = 56, NODE_R = 7, PAD_T = 18;
-const LBL_W = 168;      // ancho de una etiqueta
+const ROW_H = 96, NODE_R = 7, PAD_T = 24;
+const LBL_W = 220;      // ancho de una etiqueta, sin recortar títulos ni indicativos
 const LBL_GAP = 12;     // separación nodo → su etiqueta
 const LANE_GAP = 26;    // aire entre un carril y la etiqueta del carril de dentro (para la curva)
 const COL_W = 2 * NODE_R + LBL_GAP + LBL_W + LANE_GAP; // ancho de una columna "carril + etiqueta"
@@ -33,7 +34,7 @@ interface GEdge { d: string; color: string; dim?: boolean }
   template: `
 @if (song.partes.length) {
 @let g = build();
-<div class="graph-scroll" [style.height.px]="g.h + 16">
+<div class="graph-scroll" tabindex="0" role="region" aria-label="Cronograma de partes. Desplázate horizontalmente para ver las ramas." [style.height.px]="g.h + 16">
 <div class="graph" [style.height.px]="g.h" [style.width.px]="g.w">
   <svg [attr.width]="g.w" [attr.height]="g.h" class="graph-svg" #svg>
     @for (e of g.edges; track $index) {
@@ -71,15 +72,15 @@ interface GEdge { d: string; color: string; dim?: boolean }
     }
   </svg>
   @for (n of g.nodes; track n.key) {
-    <button type="button" class="graph-label"
+    <button #graphLabel type="button" class="graph-label" [attr.data-key]="n.key"
       [class.dim]="(dragKey() && dragKey() !== n.key) || n.shadowed || n.active === false"
       [class.is-add]="n.kind === 'add'"
       [class.ralign]="n.lr"
       [style.top.px]="n.y - 17" [style.left.px]="n.lx" [style.width.px]="n.lw"
-      (pointerdown)="down($event, n, false)">
+      (pointerdown)="down($event, n, false)" (click)="keyboardActivate($event, n)">
       @if (n.kind === 'add') {
         <strong>＋ Añadir parte</strong>
-        <small>Púlsalo para añadir al final · arrastra la bola a un hueco para insertar</small>
+        <small>Añade un nuevo fragmento a la canción</small>
       } @else if (n.part; as part) {
         <small>{{ fmt(part.start) }} — {{ fmt(part.end) }}</small>
         <strong>{{ part.name || 'Parte' }}</strong>
@@ -98,32 +99,78 @@ interface GEdge { d: string; color: string; dim?: boolean }
   }
 </div>
 </div>
+<div class="graph-mobile">
+  @for (n of g.nodes; track n.key) {
+    @if (n.mainIndex === 0) { <h3>Línea principal</h3> }
+    @if (n.kind === 'branch-first' || n.kind === 'branch-single') {
+      <h3>Rama alternativa <span>{{ n.active ? 'En uso' : 'Guardada' }}</span></h3>
+      <p class="branch-origin">{{ branchOrigin(n) }}</p>
+    }
+    @if (n.part; as part) {
+      <section class="mobile-node" [style.--part-color]="n.color" [class.shadowed]="n.shadowed || n.active === false">
+        <button type="button" class="mobile-title" (click)="editPart.emit({ ramaId: n.ramaId ?? null, index: n.mainIndex ?? n.partIndex! })">
+          <small>{{ fmt(part.start) }} — {{ fmt(part.end) }}</small>
+          <strong>{{ part.name || 'Parte' }}</strong>
+          <span class="graph-tags">
+            @if (n.shadowed) { <em class="tag-off">Sustituida por alternativa</em> }
+            @for (t of part.tracks; track t.track) { <em>{{ short[t.track] }}</em> }
+            @if (part.question || part.answer) { <em class="pink">{{ part.question ? 'Pregunta' : 'Respuesta' }}</em> }
+            @if (part.desfase) { <em class="tag-desfase">Desfase</em> }
+          </span>
+        </button>
+        <div class="mobile-actions">
+          <button type="button" (click)="playPart.emit({ ramaId: n.ramaId ?? null, index: n.mainIndex ?? n.partIndex! })" [attr.aria-label]="'Escuchar ' + part.name">▶ Escuchar</button>
+          <button type="button" (click)="openMobileMenu($event, n)" [attr.aria-label]="'Opciones de ' + part.name">Opciones ···</button>
+        </div>
+      </section>
+    } @else {
+      <button type="button" class="outline mobile-add" (click)="addPart.emit()">＋ Añadir parte</button>
+    }
+  }
+</div>
 <p class="graph-hint">Toca una parte (bola o título) para escucharla · mantén pulsado para el menú (editar, reordenar, alternativa, …) · en escritorio también puedes mantener pulsada la <b>bola</b> y arrastrarla para reordenar o mover una rama, o arrastrar la bola «＋» a un hueco para insertar.</p>
 }
   `,
   styles: [`
-    :host{display:block;min-width:0}
-    .graph-scroll{overflow-x:auto;overflow-y:hidden;max-width:100%;margin:6px 0;-webkit-overflow-scrolling:touch}
+    :host{display:block;min-width:0;container-type:inline-size}
+    .graph-scroll{overflow-x:auto;overflow-y:hidden;max-width:100%;margin:6px 0;scrollbar-color:var(--tint-border) var(--bg);scrollbar-width:thin;-webkit-overflow-scrolling:touch}
     .graph{position:relative;margin:0 auto}
     .graph-svg{display:block;touch-action:pan-y;overflow:visible}
     .g-node{pointer-events:none}
     .g-hit{cursor:grab;touch-action:none}
-    .graph-label{position:absolute;display:grid;gap:1px;text-align:left;border:0;background:none;padding:4px 6px;border-radius:7px;cursor:pointer;box-sizing:border-box;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+    .graph-label{position:absolute;display:grid;gap:5px;text-align:left;border:1px solid var(--border);background:var(--card);padding:10px 12px;border-radius:9px;cursor:pointer;box-sizing:border-box;overflow-wrap:anywhere;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
     .graph-label.ralign{text-align:right}
     .graph-label.ralign .graph-tags{justify-content:flex-end}
     .graph-label:hover{background:var(--tint)}
-    .graph-label.dim{opacity:.35}
+    .graph-label.dim{opacity:.65}
     .graph-label.is-add{cursor:pointer}
     .graph-label.is-add strong{color:var(--blue)}
-    .graph-label small{font-size:10px;color:var(--muted)}
-    .graph-label strong{font-size:13px;color:var(--ink);line-height:1.2}
-    .graph-tags{display:flex;gap:3px;flex-wrap:wrap;margin-top:2px}
+    .graph-label small{font-size:11px;color:var(--muted);line-height:1.5}
+    .graph-label strong{font-size:13px;color:var(--ink);line-height:1.5}
+    .graph-tags{display:flex;gap:4px;flex-wrap:wrap;margin-top:2px}
+    .graph-tags em{font-size:10px;font-style:normal;line-height:1.5;font-weight:600;padding:2px 6px;border-radius:5px;background:var(--tint);color:var(--tint-ink)}
+    .graph-tags .pink{background:#f0ecfa;color:#654698}
+    .graph-tags .tag-desfase{background:#e9f0fa;color:#365a86}
     .graph-tags .tag-on{background:#dcfce7!important;color:#15803d!important}
     .graph-tags .tag-off{background:#f1ede6!important;color:var(--muted)!important}
-    .graph-hint{font-size:11px;color:var(--muted);margin:8px 0 0}
+    .graph-hint{font-size:12px;line-height:1.7;color:var(--muted);margin:12px 0 0}
+    .graph-mobile{display:none}
+    .graph-mobile h3{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:20px 0 12px;color:var(--muted);font-size:13px;font-weight:600}
+    .graph-mobile h3:first-child{margin-top:0}
+    .graph-mobile h3 span{color:var(--blue);font-size:11px}
+    .branch-origin{font-size:12px;color:var(--muted);margin:0 0 12px}
+    .mobile-node{border:1px solid var(--border);border-left:3px solid var(--part-color);border-radius:9px;margin-bottom:12px;min-width:0;background:#fff}
+    .mobile-node.shadowed{background:var(--bg)}
+    .mobile-title{display:grid;gap:8px;width:100%;padding:14px 12px;text-align:left;background:none;border:0;border-radius:8px;color:var(--ink);overflow-wrap:anywhere}
+    .mobile-title small{font-size:11px;color:var(--muted)}
+    .mobile-title strong{font-size:14px;line-height:1.5}
+    .mobile-actions{display:flex;justify-content:space-between;gap:8px;padding:4px 8px 8px}
+    .mobile-actions button{min-height:36px;padding:8px;border:0;border-radius:7px;background:var(--tint);color:var(--blue);font-size:12px;font-weight:600}
+    .mobile-add{width:100%;margin-top:8px}
+    @container (max-width:640px){.graph-scroll,.graph-hint{display:none}.graph-mobile{display:block}}
   `],
 })
-export class SongGraph {
+export class SongGraph implements AfterViewInit, OnDestroy {
   @Input() song!: Song;
   @Output() editPart = new EventEmitter<{ ramaId: string | null; index: number | null }>();
   @Output() menu = new EventEmitter<{ ramaId: string | null; index: number; x: number; y: number }>();
@@ -150,6 +197,58 @@ export class SongGraph {
   };
   private snapIndex: number | null = null;
   private mainNodesCache: GNode[] = [];
+  private addNodeY = 0;
+  @ViewChildren('graphLabel', { read: ElementRef }) private labels!: QueryList<ElementRef<HTMLElement>>;
+  private labelHeights = signal<Record<string, number>>({});
+  private observer?: ResizeObserver;
+  private labelChanges?: Subscription;
+
+  ngAfterViewInit() {
+    this.observer = new ResizeObserver(entries => {
+      const heights = { ...this.labelHeights() };
+      let changed = false;
+      for (const entry of entries) {
+        const label = entry.target as HTMLElement;
+        const key = label.dataset['key']!;
+        const height = Math.ceil(label.getBoundingClientRect().height);
+        if (heights[key] !== height) { heights[key] = height; changed = true; }
+      }
+      if (changed) this.labelHeights.set(heights);
+    });
+    const observe = () => {
+      this.observer!.disconnect();
+      this.labels.forEach(label => this.observer!.observe(label.nativeElement));
+    };
+    observe();
+    this.labelChanges = this.labels.changes.subscribe(observe);
+  }
+
+  ngOnDestroy() {
+    this.observer?.disconnect();
+    this.labelChanges?.unsubscribe();
+    this.end();
+  }
+
+  keyboardActivate(event: MouseEvent, node: GNode) {
+    if (event.detail !== 0) return;
+    if (node.kind === 'add') this.addPart.emit();
+    else this.editPart.emit({ ramaId: node.ramaId ?? null, index: node.mainIndex ?? node.partIndex! });
+  }
+
+  branchOrigin(node: GNode) {
+    const branch = this.song.ramas.find(r => r.id === node.ramaId);
+    if (!branch) return '';
+    const from = this.song.partes[branch.desde]?.name ?? 'Inicio';
+    const to = this.song.partes[branch.hasta]?.name;
+    return `Después de «${from}»${to ? `, vuelve a «${to}».` : ', hasta el final.'}`;
+  }
+
+  openMobileMenu(event: MouseEvent, node: GNode) {
+    const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
+    this.menu.emit({ ramaId: node.ramaId ?? null, index: node.mainIndex ?? node.partIndex!,
+      x: Math.max(12, Math.min(rect.left, window.innerWidth - 280)),
+      y: Math.max(12, Math.min(rect.bottom + 8, window.innerHeight - 340)) });
+  }
 
   fmt(n: number) {
     return `${String(Math.floor(n / 60)).padStart(2, '0')}:${String(Math.floor(n % 60)).padStart(2, '0')}`;
@@ -160,7 +259,7 @@ export class SongGraph {
     const m = this.mainNodesCache;
     if (!m.length) return PAD_T;
     if (index <= 0) return Math.max(4, m[0].y - ROW_H / 2);
-    if (index >= m.length) return m[m.length - 1].y + ROW_H / 2;
+    if (index >= m.length) return (m[m.length - 1].y + this.addNodeY) / 2;
     return (m[index - 1].y + m[index].y) / 2;
   }
 
@@ -175,7 +274,6 @@ export class SongGraph {
     const N = partes.length;
     const nodes: GNode[] = [];
 
-    const rowY = (r: number) => PAD_T + NODE_R + r * ROW_H;
     const isActive = (r: { activa: boolean }) => r.activa !== false;
     /** nº de partes de la línea oficial que una rama sustituye (0 si solo se inserta). */
     const spanOf = (r: { desde: number; hasta: number }) => {
@@ -214,6 +312,20 @@ export class SongGraph {
       if (rows.length) bottomRow = Math.max(bottomRow, Math.max(...rows) + 1);
     }
 
+    // Cada fila reserva la altura real de su etiqueta más alta, incluidas las ramas.
+    // ResizeObserver vuelve a medir si cambian el título, las etiquetas o el tamaño del texto.
+    const heights = this.labelHeights();
+    const rowHeights = Array.from({ length: Math.max(bottomRow, addRow) + 1 }, () => ROW_H);
+    const reserve = (r: number, key: string) => {
+      rowHeights[r] = Math.max(rowHeights[r], (heights[key] ?? ROW_H) + 24);
+    };
+    partes.forEach((_, i) => reserve(mainRow[i], 'm' + i));
+    ramas.forEach(rama => rama.partes.forEach((_, i) => reserve(branchRows.get(rama.id)![i], rama.id + '-' + i)));
+    reserve(addRow, 'add');
+    const rowPositions = [PAD_T + 17];
+    for (let i = 1; i < rowHeights.length; i++) rowPositions[i] = rowPositions[i - 1] + rowHeights[i - 1];
+    const rowY = (r: number) => rowPositions[r];
+
     // --- carriles: ramas con filas solapadas → carriles distintos, alternando izquierda/derecha ---
     const ramaLane = new Map<string, number>();
     const laneMaxRow: number[] = [];
@@ -232,12 +344,12 @@ export class SongGraph {
       else maxRight = Math.max(maxRight, lane >> 1);
     }
 
-    // --- geometría horizontal: línea principal centrada; alternativas a ambos lados ---
+    // El conjunto completo se centra sin reservar columnas vacías a ambos lados.
     const sideExt = (maxDepth: number) => maxDepth < 0 ? 0 : LANE_GAP + maxDepth * COL_W + 2 * NODE_R + LBL_GAP + LBL_W;
     const leftExt = Math.max(sideExt(maxLeft), NODE_R + 16);
     const rightExt = (NODE_R + LBL_GAP + LBL_W) + sideExt(maxRight);
-    const mx = Math.max(leftExt, rightExt) + 8;
-    const w = 2 * mx;
+    const mx = leftExt + 8;
+    const w = mx + rightExt + 8;
     const laneNodeX = (lane: number) => {
       const depth = lane >> 1;
       return lane % 2 === 0
@@ -291,13 +403,14 @@ export class SongGraph {
     this.mainNodesCache = nodes.filter(n => n.kind === 'main');
 
     const addY = rowY(addRow);
+    this.addNodeY = addY;
     const [alx, alw, alr] = mainLabel(mx);
     nodes.push({ key: 'add', x: mx, y: addY, color: 'var(--blue)', kind: 'add', lx: alx, lw: alw, lr: alr });
     if (N) edges.push({ d: `M${mx},${rowY(mainRow[N - 1])} L${mx},${addY}`, color: '#d9cfc4' });
 
     return {
       nodes, edges, w, mainX: mx,
-      h: rowY(Math.max(bottomRow, addRow)) + NODE_R + PAD_T,
+      h: rowY(Math.max(bottomRow, addRow)) + rowHeights[Math.max(bottomRow, addRow)] + PAD_T,
     };
   }
 
@@ -378,9 +491,9 @@ export class SongGraph {
       this.snapY.set(best ? best.y : null);
     } else {
       const lastMain = this.mainNodesCache[this.mainNodesCache.length - 1];
-      if (lastMain && localY > lastMain.y + ROW_H * 0.6) {
+      if (lastMain && localY > (lastMain.y + this.addNodeY) / 2) {
         this.snapIndex = this.song.partes.length;
-        this.snapY.set(lastMain.y + ROW_H);
+        this.snapY.set(this.addNodeY);
       } else {
         this.snapIndex = best ? best.mainIndex! : this.song.partes.length;
         this.snapY.set(best ? best.y : null);

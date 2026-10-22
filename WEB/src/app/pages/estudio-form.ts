@@ -15,7 +15,7 @@ const COLORS = ['#910000', '#6d28d9', '#0e7490', '#c2410c', '#15803d', '#a16207'
   <a class="back" routerLink="/administracion/estudio">← Estudio</a>
   <div class="no-parts">Cargando canción…</div>
 } @else {
-<a class="back" (click)="backToEstudio()" style="cursor:pointer">← Estudio</a>
+<button type="button" class="back" (click)="backToEstudio()">← Estudio</button>
 <header class="head">
   <div>
     <p>ESTUDIO · {{ editing ? 'EDICIÓN' : 'ALTA' }}</p>
@@ -51,7 +51,7 @@ const COLORS = ['#910000', '#6d28d9', '#0e7490', '#c2410c', '#15803d', '#a16207'
         </label>
       </div>
       <label>Descripción<textarea [(ngModel)]="song.description"></textarea></label>
-      <label [class.field-error]="missDuration()">Duración <small>segundos</small>
+      <label [class.field-error]="missDuration()">Duración (segundos)
         <input [(ngModel)]="song.duration" (ngModelChange)="missDuration.set(false)" type="number" min="1">
       </label>
       <div class="checks">
@@ -112,7 +112,7 @@ const COLORS = ['#910000', '#6d28d9', '#0e7490', '#c2410c', '#15803d', '#a16207'
     <h2>Resumen</h2>
     <p><b>{{ song.partes.length }}</b> partes definidas</p>
     @if (song.ramas.length) { <p><b>{{ song.ramas.length }}</b> ramas alternativas</p> }
-    <p>Se guarda en MySQL mediante la API.</p>
+    <p>Los cambios se guardan automáticamente. Publica la canción cuando esté lista para los socios.</p>
   </aside>
 </section>
 
@@ -149,7 +149,7 @@ const COLORS = ['#910000', '#6d28d9', '#0e7490', '#c2410c', '#15803d', '#a16207'
 }
 }
   `,
-  styleUrl: './pages.scss',
+
 })
 export class EstudioForm implements OnInit, OnDestroy {
   data = inject(DataService);

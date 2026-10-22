@@ -21,7 +21,7 @@ export default defineConfig({
   },
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
   webServer: {
-    command: `npm run start -- --port ${puerto}`,
+    command: `npm run start -- --host 127.0.0.1 --port ${puerto} --ssl=${new URL(baseURL).protocol === 'https:'}`,
     url: baseURL,
     reuseExistingServer: !process.env['CI'],
     timeout: 120_000,

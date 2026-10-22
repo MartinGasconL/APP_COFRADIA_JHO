@@ -15,8 +15,10 @@ import { InfoView } from '../info/info-view';
 
 <section class="player card">
   <div>
-    <button class="play" (click)="toggle()" [disabled]="!canPlay()">{{ engine.playing() ? 'Ⅱ' : '▶' }}</button>
-    <button (click)="engine.stop()" [disabled]="!canPlay()">■</button>
+    <button class="play" (click)="toggle()" [disabled]="!canPlay()" [attr.aria-label]="engine.playing() ? 'Pausar' : 'Reproducir'">
+      <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">@if (engine.playing()) { <path fill="currentColor" d="M6 4h4v16H6zM14 4h4v16h-4z"/> } @else { <path fill="currentColor" d="M8 5v14l11-7z"/> }</svg>
+    </button>
+    <button (click)="engine.stop()" [disabled]="!canPlay()" aria-label="Parar"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M6 6h12v12H6z"/></svg></button>
     <strong>{{ fmt(engine.position()) }} / {{ fmt(engine.duration()) }}</strong>
   </div>
 
@@ -101,7 +103,7 @@ import { InfoView } from '../info/info-view';
 }
 }
   `,
-  styleUrl: './pages.scss',
+
 })
 export class Cancion implements OnInit, OnDestroy {
   private data = inject(DataService);

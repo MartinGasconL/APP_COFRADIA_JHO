@@ -20,9 +20,9 @@ import { DataService, Song } from '../data.service';
   @for (song of drafts(); track song.id) {
   <a [routerLink]="['/administracion/estudio', song.id]">
     <div><i>♬</i><span><b>{{ song.title }}</b><small>{{ song.description || 'Sin descripción' }}</small></span></div>
-    <span><em *ngIf="song.procesion">Procesión</em><em *ngIf="song.exhibicion">Exhibición</em></span>
-    <span>{{ song.bpm }} BPM</span>
-    <span>{{ trackCount(song) }} pistas</span>
+    <span class="usage-tags"><em *ngIf="song.procesion">Procesión</em><em *ngIf="song.exhibicion">Exhibición</em></span>
+    <span class="tempo">{{ song.bpm }} BPM</span>
+    <span class="track-count">{{ trackCount(song) }} pistas</span>
     <span class="row-end">
       @if (confirmId() === song.id) {
         <button type="button" class="danger-link" (click)="doDelete(song.id, $event)" [disabled]="busy()">Borrar</button>
@@ -41,7 +41,7 @@ import { DataService, Song } from '../data.service';
   <div class="no-parts">No hay borradores. Crea uno con "+ Nueva canción".</div>
 }
   `,
-  styleUrl: './pages.scss',
+
 })
 export class Estudio {
   data = inject(DataService);

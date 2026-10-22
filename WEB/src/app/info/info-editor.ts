@@ -28,7 +28,7 @@ const ACTIONS: Action[] = [
     <div class="ie-icon">✎</div>
     <div class="ie-title">
       <p>INFORMACIÓN DE LA CANCIÓN</p>
-      <h2>Tips e indicaciones</h2>
+      <h2>Consejos e indicaciones</h2>
       <span>Escribe en Markdown. La vista previa es lo que verán los socios en la pestaña <b>Información</b> de esta canción. Se guarda junto con la canción.</span>
     </div>
   </header>
@@ -67,26 +67,27 @@ const ACTIONS: Action[] = [
 </section>
   `,
   styles: [`
-:host{display:block;container-type:inline-size}
+:host{display:block;min-width:0;container-type:inline-size}
 .info-editor{padding:20px;display:grid;gap:14px}
 .ie-head{display:flex;gap:12px;align-items:flex-start}
 .ie-icon{display:grid;place-items:center;flex:none;width:38px;height:38px;border-radius:9px;background:var(--tint);color:var(--blue);font-size:20px}
 .ie-title p{font-size:10px;letter-spacing:1.3px;font-weight:bold;color:var(--blue);margin:0 0 3px}
 .ie-title h2{margin:0 0 4px;font-size:18px}
 .ie-title span{font-size:12px;color:var(--muted)}
+.ie-title{min-width:0;overflow-wrap:anywhere}
 .ie-toolbar{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
-.ie-toolbar>button,.ie-attach{min-width:34px;height:34px;padding:0 10px;border:1px solid var(--border);background:#fff;color:var(--ink);border-radius:8px;cursor:pointer;font-size:13px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;gap:6px;line-height:1}
+.ie-toolbar>button,.ie-attach{position:relative;min-width:40px;min-height:40px;padding:8px 10px;border:1px solid var(--border);background:#fff;color:var(--ink);border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;display:inline-flex;align-items:center;justify-content:center;gap:6px;line-height:1.4}
 .ie-toolbar>button:hover,.ie-attach:hover{background:var(--tint);border-color:var(--tint-border);color:var(--blue)}
-.ie-attach input{display:none}.ie-attach.busy{opacity:.6;pointer-events:none}
+.ie-attach input{position:absolute;width:1px;height:1px;opacity:0}.ie-attach:focus-within{outline:3px solid var(--blue);outline-offset:3px}.ie-attach.busy{opacity:.6;pointer-events:none}
 .ie-sep{width:1px;height:22px;background:var(--border);margin:0 4px}
 .ie-toolbar .b{font-weight:900}.ie-toolbar .i{font-style:italic;font-family:Georgia,serif}
 .ie-mode{margin-left:auto;display:none;background:#f2ede6;border-radius:9px;padding:3px;gap:2px}
 .ie-mode button{border:0;background:none;padding:6px 11px;border-radius:7px;font-size:12px;font-weight:700;color:var(--muted);cursor:pointer}
 .ie-mode button.on{background:#fff;color:var(--blue);box-shadow:0 1px 3px #0000001a}
 .ie-error{background:#fef2f2;color:#b91c1c;border:1px solid #f0c9c9;border-radius:8px;padding:9px 12px;font-size:12px;font-weight:bold}
-.ie-panes{display:grid;grid-template-columns:1fr 1fr;gap:14px;min-height:420px}
+.ie-panes{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px;min-height:300px}
 .ie-pane{min-width:0;border:1px solid var(--border);border-radius:10px;background:#fff}
-.ie-write textarea{display:block;width:100%;height:100%;min-height:420px;border:0;border-radius:10px;resize:vertical;padding:16px;font-family:ui-monospace,Consolas,monospace;font-size:13.5px;line-height:1.65;background:#fffdf9;color:var(--ink);outline:none}
+.ie-write textarea{display:block;width:100%;height:100%;min-height:300px;border:0;border-radius:10px;resize:vertical;padding:16px;font-family:ui-monospace,Consolas,monospace;font-size:14px;line-height:1.65;background:#fffdf9;color:var(--ink);outline:none}
 .ie-write:focus-within{border-color:var(--blue);box-shadow:0 0 0 3px var(--tint)}
 .ie-write.drop{border-color:var(--blue);border-style:dashed;background:var(--tint)}
 .ie-preview{position:relative;padding:26px 24px 22px;overflow:auto;max-height:640px;background:var(--bg)}
@@ -96,6 +97,13 @@ const ACTIONS: Action[] = [
   .ie-mode{display:flex}
   .ie-panes{grid-template-columns:1fr}
   .ie-panes[data-mode=write] .ie-preview,.ie-panes[data-mode=preview] .ie-write{display:none}
+}
+@container (max-width: 400px){
+  .info-editor{padding:18px}
+  .ie-icon{display:none}
+  .ie-mode{margin-left:0;flex-basis:100%;justify-content:center}
+  .ie-mode button{flex:1;min-height:40px}
+  .ie-write textarea{font-size:16px}
 }
   `],
 })

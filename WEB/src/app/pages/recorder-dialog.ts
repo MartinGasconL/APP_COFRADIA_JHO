@@ -1,15 +1,17 @@
 import { Component, ElementRef, EventEmitter, OnDestroy, Output, ViewChild, signal } from '@angular/core';
+import { A11yModule } from '@angular/cdk/a11y';
 
 type Phase = 'idle' | 'recording' | 'paused' | 'recorded';
 
 @Component({
   selector: 'app-recorder-dialog',
+  imports: [A11yModule],
   template: `
 <div class="modal-backdrop" (click)="onBackdrop($event)">
-  <div class="recorder-modal" (click)="$event.stopPropagation()">
+  <div class="recorder-modal" role="dialog" aria-modal="true" aria-labelledby="recorder-title" cdkTrapFocus [cdkTrapFocusAutoCapture]="true" (keydown.escape)="discard()" (click)="$event.stopPropagation()">
     <header>
-      <div><p>GRABACIÓN</p><h2>Grabar pista desde el micrófono</h2></div>
-      <button type="button" (click)="discard()">×</button>
+      <div><p>GRABACIÓN</p><h2 id="recorder-title">Grabar pista desde el micrófono</h2></div>
+      <button type="button" aria-label="Cerrar grabadora" (click)="discard()">×</button>
     </header>
 
     @if (error()) { <div class="rec-error">{{ error() }}</div> }
@@ -58,11 +60,12 @@ type Phase = 'idle' | 'recording' | 'paused' | 'recorded';
 </div>
   `,
   styles: [`
-    .recorder-modal{width:min(460px,100%);background:#fff;border-radius:14px;padding:22px;display:grid;gap:16px}
-    .recorder-modal header{display:flex;justify-content:space-between;align-items:start}
+    .recorder-modal{width:min(460px,100%);min-width:0;max-height:calc(100dvh - 40px);overflow-y:auto;overscroll-behavior:contain;background:#fff;border-radius:14px;padding:22px;display:grid;gap:16px}
+    .recorder-modal header{display:flex;justify-content:space-between;align-items:start;gap:12px}
     .recorder-modal header p{margin:0;font-size:10px;color:var(--blue);letter-spacing:1px;font-weight:bold}
     .recorder-modal h2{margin:3px 0 0;font-size:17px}
-    .recorder-modal header>button{border:0;background:none;font-size:24px;cursor:pointer;line-height:1}
+    .recorder-modal header>button{flex:none;border:0;background:none;font-size:24px;cursor:pointer;line-height:1}
+    .recorder-modal button{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:44px;line-height:1.4}
     .rec-error{background:#fef2f2;color:#b91c1c;border-radius:8px;padding:10px;font-size:12px}
     .rec-stage{display:grid;justify-items:center;gap:4px;padding:14px;background:#faf6f0;border-radius:10px}
     .rec-stage strong{font-size:28px;font-variant-numeric:tabular-nums}
@@ -77,7 +80,8 @@ type Phase = 'idle' | 'recording' | 'paused' | 'recorded';
     .recorder-modal .primary{border:0;background:var(--blue);color:#fff;padding:9px 13px;border-radius:8px;font-weight:bold;cursor:pointer}
     .recorder-modal .primary:disabled{opacity:.45;cursor:not-allowed}
     .recorder-modal .outline{border:1px solid var(--tint-border);background:#fff;color:var(--blue);padding:9px 13px;border-radius:8px;cursor:pointer}
-    .recorder-modal footer{display:flex;justify-content:space-between;gap:8px;border-top:1px solid var(--border);padding-top:14px}
+    .recorder-modal footer{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;border-top:1px solid var(--border);padding-top:14px}
+    @media(max-width:400px){.recorder-modal{padding:18px;max-height:calc(100dvh - 24px)}.recorder-modal footer button{flex:1}}
   `],
 })
 export class RecorderDialog implements OnDestroy {

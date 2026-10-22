@@ -18,7 +18,7 @@ const STATUS_LABEL: Record<string, string> = {
 @if (!ready()) {
   <div class="no-parts">Cargando…</div>
 } @else {
-<a class="back" (click)="back()">← {{ song.title || 'Canción' }}</a>
+<button type="button" class="back" (click)="back()">← {{ song.title || 'Canción' }}</button>
 <header class="head">
   <div>
     <p>ESTUDIO · PARTE{{ branchKey ? ' · RAMA' : '' }}</p>
@@ -33,8 +33,8 @@ const STATUS_LABEL: Record<string, string> = {
       <label>Título<input [(ngModel)]="partDraft.name" placeholder="p. ej. Llamada"></label>
       <label>Descripción / nota<textarea [(ngModel)]="partDraft.note"></textarea></label>
       <div class="fields two">
-        <label>Inicio <small>segundos</small><input [(ngModel)]="partDraft.start" type="number" min="0" [max]="song.duration"></label>
-        <label>Fin <small>segundos</small><input [(ngModel)]="partDraft.end" type="number" min="0" [max]="song.duration"></label>
+        <label>Inicio (segundos)<input [(ngModel)]="partDraft.start" type="number" min="0" [max]="song.duration"></label>
+        <label>Fin (segundos)<input [(ngModel)]="partDraft.end" type="number" min="0" [max]="song.duration"></label>
       </div>
       <fieldset class="part-flags">
         <legend>Indicativos</legend>
@@ -123,7 +123,7 @@ const STATUS_LABEL: Record<string, string> = {
         @if (partDraft.desfase) { <em class="pink">Desfase de bombos</em> }
       </p>
     }
-    <p>Se guarda en MySQL mediante la API.</p>
+    <p>Guarda la parte para incorporar sus intervalos e indicaciones a la canción.</p>
   </aside>
 </section>
 
@@ -138,7 +138,7 @@ const STATUS_LABEL: Record<string, string> = {
 }
 }
   `,
-  styleUrl: './pages.scss',
+
 })
 export class EstudioParte implements OnInit, OnDestroy {
   data = inject(DataService);

@@ -1,5 +1,6 @@
 import { Component, OnDestroy, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { A11yModule } from '@angular/cdk/a11y';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Observable, map, of, throwError } from 'rxjs';
@@ -16,7 +17,7 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 @Component({
-  imports: [CommonModule, FormsModule, RouterLink, RecorderDialog, PartRangeBar, InfoEditor],
+  imports: [CommonModule, FormsModule, RouterLink, RecorderDialog, PartRangeBar, InfoEditor, A11yModule],
   template: `
 @if (!ready()) {
   <a class="back" routerLink="/administracion/canciones">← Canciones</a>
@@ -27,7 +28,7 @@ const STATUS_LABEL: Record<string, string> = {
   <div>
     <p>ADMINISTRACIÓN · {{ editing ? 'EDICIÓN' : 'ALTA' }}</p>
     <h1>{{ editing ? 'Editar canción' : 'Crear canción' }}</h1>
-    <span>El audio se sube al seleccionarlo. La canción y las partes se guardan con el botón de abajo.</span>
+    <span>Edita los datos, organiza las partes y prepara las pistas de la canción.</span>
   </div>
 </header>
 
@@ -40,7 +41,7 @@ const STATUS_LABEL: Record<string, string> = {
         <label>Tempo (BPM)<input [(ngModel)]="song.bpm" type="number"></label>
       </div>
       <label>Descripción<textarea [(ngModel)]="song.description"></textarea></label>
-      <label>Duración <small>segundos</small><input [(ngModel)]="song.duration" type="number"></label>
+      <label>Duración (segundos)<input [(ngModel)]="song.duration" type="number"></label>
       <div class="checks">
         <label><input [(ngModel)]="song.procesion" type="checkbox"> Procesión</label>
         <label><input [(ngModel)]="song.exhibicion" type="checkbox"> Exhibición</label>
@@ -51,7 +52,7 @@ const STATUS_LABEL: Record<string, string> = {
 
     <section class="card section">
       <h2>Pistas</h2>
-      <p class="section-help">Opcionales. Al seleccionar un fichero (MP3, WAV, M4A, MP4…) o grabar, se sube a la API al momento.</p>
+      <p class="section-help">Sube un archivo de audio o graba cada instrumento. Las pistas se guardan al subirlas.</p>
       <div class="track-upload">
         @for (track of tracks; track track) {
         <div class="track-card">
@@ -131,7 +132,7 @@ const STATUS_LABEL: Record<string, string> = {
             [class.available]="!!r"
             [style.left.%]="(r ? r.start : part.start) / song.duration * 100"
             [style.width.%]="((r ? r.end : part.end) - (r ? r.start : part.start)) / song.duration * 100"
-            [style.--part-color]="part.color" (click)="openPart($index)">
+            [style.--part-color]="part.color" [title]="part.name + ' · ' + fmt(r ? r.start : part.start) + ' — ' + fmt(r ? r.end : part.end)" [attr.aria-label]="'Editar ' + part.name" (click)="openPart($index)">
             <span>{{ part.name }}</span>
           </button>
           }
@@ -145,7 +146,7 @@ const STATUS_LABEL: Record<string, string> = {
     <h2>Resumen</h2>
     <p><b>{{ song.partes.length }}</b> partes definidas</p>
     <p><b>{{ trackCount() }}</b> pistas subidas</p>
-    <p>Se guarda en MySQL mediante la API.</p>
+    <p>Guarda la canción para que los socios vean los cambios en el repertorio.</p>
   </aside>
 </section>
 
@@ -158,10 +159,10 @@ const STATUS_LABEL: Record<string, string> = {
 
 @if (showPopup()) {
 <div class="modal-backdrop" (click)="closePart()">
-  <form class="part-modal" (click)="$event.stopPropagation()" (ngSubmit)="savePart()">
+  <form class="part-modal" role="dialog" aria-modal="true" aria-labelledby="part-dialog-title" cdkTrapFocus [cdkTrapFocusAutoCapture]="true" (keydown.escape)="closePart()" (click)="$event.stopPropagation()" (ngSubmit)="savePart()">
     <header>
-      <div><p>PARTE</p><h2>{{ editingPartIndex() === null ? 'Añadir parte' : 'Editar parte' }}</h2></div>
-      <button type="button" (click)="closePart()">×</button>
+      <div><p>PARTE</p><h2 id="part-dialog-title">{{ editingPartIndex() === null ? 'Añadir parte' : 'Editar parte' }}</h2></div>
+      <button type="button" aria-label="Cerrar edición de parte" (click)="closePart()">×</button>
     </header>
     <label>Título<input [(ngModel)]="partDraft.name" name="title" required></label>
     <label>Descripción / nota<textarea [(ngModel)]="partDraft.note" name="note"></textarea></label>
@@ -249,7 +250,7 @@ const STATUS_LABEL: Record<string, string> = {
 }
 }
   `,
-  styleUrl: './pages.scss',
+
 })
 export class CancionForm implements OnInit, OnDestroy {
   data = inject(DataService);

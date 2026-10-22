@@ -8,32 +8,40 @@ import { DataService, Song } from '../data.service';
   imports: [CommonModule, FormsModule, RouterLink],
   template: `
 <header class="head">
-  <div><p>SOCIOS</p><h1>Canciones</h1><span>Consulta, escucha y practica el repertorio.</span></div>
+  <div><p>ESPACIO DE SOCIOS</p><h1>Repertorio</h1><span>Las marchas que nos unen. Encuentra tu canción y prepara el próximo ensayo.</span></div>
 </header>
 
-<section class="filters card">
-  <input [ngModel]="search()" (ngModelChange)="search.set($event)" placeholder="⌕ Buscar canción...">
+<section class="filters card" aria-label="Filtrar repertorio">
+  <label class="search-filter">Buscar canción
+  <input type="search" [ngModel]="search()" (ngModelChange)="search.set($event)" placeholder="Escribe un título…"></label>
+  <label>Uso
   <select [ngModel]="use()" (ngModelChange)="use.set($event)">
     <option value="todos">Todos los usos</option>
     <option value="procesion">Procesión</option>
     <option value="exhibicion">Exhibición</option>
-  </select>
+  </select></label>
+  <label>Pregunta / respuesta
   <select [ngModel]="qa()" (ngModelChange)="qa.set($event)">
-    <option value="todos">Pregunta / respuesta: todas</option>
-    <option value="si">Pregunta / respuesta: sí</option>
-    <option value="no">Pregunta / respuesta: no</option>
-  </select>
+    <option value="todos">Todas</option>
+    <option value="si">Con respuesta</option>
+    <option value="no">Sin respuesta</option>
+  </select></label>
+  <label>Desfase de bombos
   <select [ngModel]="desfase()" (ngModelChange)="desfase.set($event)">
-    <option value="todos">Desfase de bombos: todos</option>
-    <option value="si">Con desfase de bombos</option>
-    <option value="no">Sin desfase de bombos</option>
-  </select>
+    <option value="todos">Todos</option>
+    <option value="si">Con desfase</option>
+    <option value="no">Sin desfase</option>
+  </select></label>
 </section>
 
+<div class="list-summary">
+  <p role="status">{{ filtered().length }} {{ filtered().length === 1 ? 'canción disponible' : 'canciones disponibles' }}</p>
+  @if (hasFilters()) { <button type="button" class="reset-filters" (click)="resetFilters()">Limpiar filtros</button> }
+</div>
 <section class="songs">
   @for (s of filtered(); track s.id) {
   <a class="card" [routerLink]="['/repertorio', s.id]">
-    <i>♬</i>
+    <i aria-hidden="true">♬</i>
     <div>
       <h2>{{ s.title }}</h2>
       <span>{{ s.description }}</span>
@@ -45,14 +53,14 @@ import { DataService, Song } from '../data.service';
       </p>
     </div>
     <aside><strong>{{ format(s.duration) }}</strong><small>{{ s.bpm }} BPM</small></aside>
-    <em>›</em>
+    <span class="song-arrow" aria-hidden="true">›</span>
   </a>
   } @empty {
-  <div class="card empty">No hay canciones con esos filtros.</div>
+  <div class="card empty"><h2>No hay canciones con estos filtros</h2><p>Prueba otro título o limpia los filtros para ver todo el repertorio.</p></div>
   }
 </section>
   `,
-  styleUrl: './pages.scss',
+
 })
 export class Repertorio {
   private data = inject(DataService);
@@ -60,6 +68,14 @@ export class Repertorio {
   use = signal('todos');
   qa = signal('todos');
   desfase = signal('todos');
+  hasFilters = computed(() => !!this.search() || this.use() !== 'todos' || this.qa() !== 'todos' || this.desfase() !== 'todos');
+
+  resetFilters() {
+    this.search.set('');
+    this.use.set('todos');
+    this.qa.set('todos');
+    this.desfase.set('todos');
+  }
 
   filtered = computed(() => {
     const search = this.search().toLowerCase();
