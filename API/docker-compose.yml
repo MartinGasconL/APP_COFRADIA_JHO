@@ -1,0 +1,43 @@
+# Entorno de desarrollo local de la API de la Cofradía.
+#   docker compose up -d db      -> solo MySQL (para ejecutar la API con mvn spring-boot:run)
+#   docker compose up -d --build -> MySQL + API (todo en contenedores)
+name: cofradia
+
+services:
+  db:
+    image: mysql:8.0
+    container_name: cofradia-db
+    environment:
+      MYSQL_DATABASE: cofradia
+      MYSQL_USER: cofradia
+      MYSQL_PASSWORD: cofradia
+      MYSQL_ROOT_PASSWORD: root
+    ports:
+      - "3307:3306"
+    volumes:
+      - cofradia-db:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-proot"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build: .
+    container_name: cofradia-api
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      COFRADIA_DB_URL: jdbc:mysql://db:3306/cofradia?useUnicode=true&characterEncoding=utf8&serverTimezone=Europe/Madrid
+      COFRADIA_DB_USERNAME: cofradia
+      COFRADIA_DB_PASSWORD: cofradia
+      COFRADIA_CORS_ORIGINS: http://localhost:4200,http://localhost:4300,https://localhost:4300
+    ports:
+      - "8080:8080"
+    volumes:
+      - cofradia-media:/data/media
+
+volumes:
+  cofradia-db:
+  cofradia-media:

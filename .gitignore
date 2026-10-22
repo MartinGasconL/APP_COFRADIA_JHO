@@ -1,0 +1,48 @@
+# Kong con credenciales de usuarios reales (heredado de Aseint)
+/INFRA/kong/kong.yaml
+/API/.github/
+/API/deploy/
+/API/scripts/import-customers.ps1
+
+# Claude Code
+.claude/
+
+# Secretos y entorno local
+.env
+.env.*
+!.env.example
+
+# Certificados de desarrollo (claves privadas, per-máquina)
+/WEB/certs/*
+!/WEB/certs/generate.sh
+
+# Audio subido en local
+/API/media/
+
+# API (Java / Maven)
+target/
+*.class
+*.log
+
+# WEB (Angular / Node)
+node_modules/
+/WEB/dist/
+/WEB/.angular/
+/WEB/tmp/
+/WEB/out-tsc/
+/WEB/coverage/
+/WEB/playwright-report/
+/WEB/test-results/
+npm-debug.log
+yarn-error.log
+
+# IDEs y sistema
+.idea/
+*.iml
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.DS_Store
+Thumbs.db

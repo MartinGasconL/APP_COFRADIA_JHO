@@ -1,0 +1,31 @@
+spring:
+  application:
+    name: cofradia-api
+  datasource:
+    url: ${COFRADIA_DB_URL:jdbc:mysql://localhost:3307/cofradia?useUnicode=true&characterEncoding=utf8&serverTimezone=Europe/Madrid}
+    username: ${COFRADIA_DB_USERNAME:cofradia}
+    password: ${COFRADIA_DB_PASSWORD:cofradia}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+  servlet:
+    multipart:
+      max-file-size: 300MB
+      max-request-size: 300MB
+server:
+  port: ${PORT:8080}
+cofradia:
+  media-dir: ${COFRADIA_MEDIA_DIR:media}
+  # Binarios de FFmpeg. Si no están en el PATH, indica la ruta absoluta.
+  # Sin FFmpeg la API sigue funcionando: acepta audio ya reproducible (mp3/wav/ogg/webm/m4a)
+  # pero no puede convertir vídeo (mp4/mov) ni leer la duración real.
+  ffmpeg-path: ${COFRADIA_FFMPEG_PATH:ffmpeg}
+  ffprobe-path: ${COFRADIA_FFPROBE_PATH:ffprobe}
+  # Patrones de origen permitidos (CORS). Por defecto, cualquier host local o de LAN
+  # por http o https y cualquier puerto (dev). En producción fija COFRADIA_CORS_ORIGINS
+  # con el/los origen(es) reales separados por comas.
+  cors-origins: ${COFRADIA_CORS_ORIGINS:http://localhost:[*],https://localhost:[*],http://127.0.0.1:[*],https://127.0.0.1:[*],http://192.168.*:[*],https://192.168.*:[*],http://10.*:[*],https://10.*:[*],http://172.*:[*],https://172.*:[*],http://100.*:[*],https://100.*:[*]}

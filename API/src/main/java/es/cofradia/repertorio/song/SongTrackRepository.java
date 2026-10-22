@@ -1,0 +1,1 @@
+package es.cofradia.repertorio.song; import org.springframework.data.jpa.repository.JpaRepository; import java.util.*; public interface SongTrackRepository extends JpaRepository<SongTrack,Long>{Optional<SongTrack> findBySongIdAndType(Long songId,TrackType type);}
