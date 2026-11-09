@@ -1,0 +1,134 @@
+@use '../../styles/surfaces';
+@use '../../styles/controls';
+
+.recorder-modal {
+  width: min(460px, 100%);
+  min-width: 0;
+  max-height: calc(100dvh - 40px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  @include surfaces.dialog;
+  padding: 22px;
+  display: grid;
+  gap: 16px;
+}
+.recorder-modal header {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  gap: 12px;
+}
+.recorder-modal header p {
+  margin: 0;
+  font-size: 10px;
+  color: var(--blue);
+  letter-spacing: 1px;
+  font-weight: bold;
+}
+.recorder-modal h2 {
+  margin: 3px 0 0;
+  font-size: 17px;
+}
+.recorder-modal header > button {
+  flex: none;
+  border: 0;
+  background: none;
+  font-size: 24px;
+  cursor: pointer;
+  line-height: 1;
+}
+.recorder-modal button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 44px;
+  line-height: 1.4;
+}
+.rec-error {
+  background: #fef2f2;
+  color: #b91c1c;
+  border-radius: 8px;
+  padding: 10px;
+  font-size: 12px;
+}
+.rec-stage {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  padding: 14px;
+  background: #faf6f0;
+  border-radius: 10px;
+}
+.rec-stage strong {
+  font-size: 28px;
+  font-variant-numeric: tabular-nums;
+}
+.rec-stage span {
+  font-size: 12px;
+  color: var(--muted);
+}
+.rec-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #cbd5e1;
+}
+.rec-dot.live {
+  background: #dc2626;
+  animation: recpulse 1s infinite;
+}
+@keyframes recpulse {
+  50% {
+    opacity: 0.3;
+  }
+}
+.recorder-modal audio {
+  width: 100%;
+}
+.rec-seek {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+.rec-controls {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.recorder-modal button:not(.primary):not(.outline) {
+  border: 1px solid var(--border);
+  background: #fff;
+  color: var(--ink);
+  padding: 9px 13px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.recorder-modal .primary {
+  @include controls.primary;
+}
+.recorder-modal .primary:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.recorder-modal .outline {
+  @include controls.secondary;
+}
+.recorder-modal footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px;
+  border-top: 1px solid var(--border);
+  padding-top: 14px;
+}
+@media (max-width: 400px) {
+  .recorder-modal {
+    padding: 18px;
+    max-height: calc(100dvh - 24px);
+  }
+  .recorder-modal footer button {
+    flex: 1;
+  }
+}

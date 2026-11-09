@@ -1,6 +1,7 @@
-import { ChangeDetectionStrategy, Component, ViewEncapsulation, computed, inject, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, ViewEncapsulation, computed, effect, inject, input } from '@angular/core';
 import { DomSanitizer } from '@angular/platform-browser';
 import { renderMarkdown } from './markdown';
+import { renderDiagrams } from './diagrams';
 
 /** Renderiza Markdown con el estilo de la web. Se usa en la pestaña Información y en la vista previa del editor. */
 @Component({
@@ -40,8 +41,18 @@ import { renderMarkdown } from './markdown';
 .md-doc pre code{background:none;color:inherit;padding:0}
 .md-doc hr{border:0;height:1px;background:var(--border);margin:28px 0}
 .md-doc .md-media{display:block;margin:18px 0}
-.md-doc .md-media img,.md-doc .md-media video{display:block;max-width:100%;height:auto;border-radius:12px;border:1px solid var(--border);background:#2a1418;box-shadow:0 2px 10px #0000001a}
-.md-doc .md-embed iframe{display:block;width:100%;aspect-ratio:16/9;border:1px solid var(--border);border-radius:12px;background:#2a1418}
+.md-doc .md-media img,.md-doc .md-media video{display:block;max-width:100%;height:auto;border-radius:18px;border:1px solid var(--surface-glass-border);background:#2a1418;box-shadow:var(--shadow-glass)}
+.md-doc .md-image img{margin:0 auto}
+.md-doc .md-mermaid{margin:18px 0;padding:16px;overflow-x:auto;border:1px solid var(--surface-glass-border);border-radius:20px;background:var(--surface-solid);box-shadow:var(--shadow-glass),inset 0 1px 0 #fff;text-align:center}
+@supports (backdrop-filter:blur(1px)){.md-doc .md-mermaid{background:var(--surface-glass);-webkit-backdrop-filter:blur(var(--glass-blur));backdrop-filter:blur(var(--glass-blur))}}
+.md-doc .md-mermaid svg{display:block;max-width:100%;height:auto;margin:0 auto}
+.md-doc .md-mermaid:not(.is-ready):not(.is-error) .md-mermaid-src{margin:0;background:none;color:var(--muted);font-size:12px;text-align:left;white-space:pre-wrap}
+.md-doc .md-mermaid-err{display:block;color:#b3261e;font-size:13px;font-weight:600}
+.md-doc .md-embed,.md-doc .md-video{padding:10px;border:1px solid var(--surface-glass-border);border-radius:20px;background:var(--surface-solid);box-shadow:var(--shadow-glass),inset 0 1px 0 #fff}
+@supports (backdrop-filter:blur(1px)){.md-doc .md-embed,.md-doc .md-video{background:var(--surface-glass);-webkit-backdrop-filter:blur(var(--glass-blur));backdrop-filter:blur(var(--glass-blur))}}
+.md-doc .md-embed iframe{display:block;width:100%;aspect-ratio:16/9;border:0;border-radius:12px;background:#2a1418}
+.md-doc .md-video video{width:100%;aspect-ratio:16/9;border:0;box-shadow:none;object-fit:contain}
+.md-doc .md-embed .md-cap,.md-doc .md-video .md-cap{margin:10px 4px 2px;text-align:left;font-size:13px;font-weight:700;color:var(--color-brand-dark)}
 .md-doc .md-audio{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 14px}
 .md-doc .md-audio audio{display:block;width:100%}
 .md-doc .md-cap{display:block;margin-top:8px;font-size:12px;color:var(--muted);text-align:center}
@@ -58,8 +69,19 @@ export class InfoView {
   emptyText = input('Aún no hay información publicada.');
   private sanitizer = inject(DomSanitizer);
   // renderMarkdown ya sanea con DOMPurify; el saneador de Angular eliminaría vídeo, audio y el iframe de YouTube.
+  /** Marca cada bloque con sus líneas de origen (lo usa el editor para navegar entre texto y vista previa). */
+  mapSource = input(false);
+  private host = inject<ElementRef<HTMLElement>>(ElementRef);
   html = computed(() => {
-    const html = renderMarkdown(this.markdown());
+    const html = renderMarkdown(this.markdown(), { mapSource: this.mapSource() });
     return html ? this.sanitizer.bypassSecurityTrustHtml(html) : '';
   });
+
+  constructor() {
+    // Tras pintar el HTML, los bloques ```mermaid se convierten en diagramas.
+    effect(() => {
+      this.html();
+      setTimeout(() => renderDiagrams(this.host.nativeElement), 0);
+    });
+  }
 }

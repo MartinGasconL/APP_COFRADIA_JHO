@@ -1,0 +1,54 @@
+:root {
+  --color-brand-dark: #4a0a0a;
+  --color-brand: #6b0f0f;
+  --color-brand-light: #821212;
+  --color-yellow: #f5e6a8;
+  --color-cream: #fff9eb;
+  --color-champagne: #e8d3a2;
+  --color-terracotta: #ddb6a6;
+  --part-color-1: #6b0f0f;
+  --part-color-2: #a45a4b;
+  --part-color-3: #896515;
+  --part-color-4: #b04421;
+  --part-color-5: #705246;
+  --part-color-6: #a16207;
+  --color-text: #352421;
+  --color-text-muted: #725a51;
+  --color-border: #ddcbbd;
+  --color-control-border: #a98c7d;
+  --surface-solid: #fffdf8;
+  --surface-soft: rgb(255 253 248 / 72%);
+  --surface-glass: rgb(255 253 248 / 46%);
+  --surface-glass-border: rgb(255 255 255 / 85%);
+  --surface-tint: #f6e9e1;
+  --font-ui: 'Manrope', 'Segoe UI', Arial, sans-serif;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+  --radius-control: 16px;
+  --radius-panel: 28px;
+  --shadow-soft: 0 8px 32px rgb(74 10 10 / 4%), inset 0 1px 0 rgb(255 255 255 / 90%);
+  --shadow-glass: 0 16px 48px rgb(74 10 10 / 7%), inset 0 1px 0 rgb(255 255 255 / 90%);
+  --shadow-dialog: 0 24px 80px rgb(74 10 10 / 20%);
+  --glass-blur: 24px;
+  --motion-fast: 160ms;
+
+  // Compatibility aliases while the remaining screens migrate to semantic tokens.
+  --blue: var(--color-brand);
+  --navy: var(--color-brand-dark);
+  --gold: var(--color-yellow);
+  --bg: var(--color-cream);
+  --ink: var(--color-text);
+  --muted: var(--color-text-muted);
+  --border: var(--color-border);
+  --card: var(--surface-solid);
+  --tint: var(--surface-tint);
+  --tint-ink: var(--color-brand);
+  --tint-border: #cfa99a;
+  --radius: var(--radius-panel);
+  --shadow: var(--shadow-soft);
+}

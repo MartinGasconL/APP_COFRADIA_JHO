@@ -1,3 +1,4 @@
+import { PartColorPipe } from '../part-color.pipe';
 import { AfterViewInit, Component, ElementRef, EventEmitter, Input, OnDestroy, Output, QueryList, ViewChildren, signal } from '@angular/core';
 import { Subscription } from 'rxjs';
 import { CommonModule } from '@angular/common';
@@ -30,7 +31,7 @@ interface GEdge { d: string; color: string; dim?: boolean }
 
 @Component({
   selector: 'app-song-graph',
-  imports: [CommonModule],
+  imports: [PartColorPipe, CommonModule],
   template: `
 @if (song.partes.length) {
 @let g = build();
@@ -38,7 +39,7 @@ interface GEdge { d: string; color: string; dim?: boolean }
 <div class="graph" [style.height.px]="g.h" [style.width.px]="g.w">
   <svg [attr.width]="g.w" [attr.height]="g.h" class="graph-svg" #svg>
     @for (e of g.edges; track $index) {
-      <path [attr.d]="e.d" [attr.stroke]="e.color" fill="none" stroke-width="3" stroke-linecap="round"
+      <path [attr.d]="e.d" [attr.stroke]="e.color | partColor" fill="none" stroke-width="3" stroke-linecap="round"
         [attr.opacity]="e.dim ? 0.28 : 0.85" [attr.stroke-dasharray]="e.dim ? '5 4' : null"/>
     }
     @if (snapY() !== null) {
@@ -66,7 +67,7 @@ interface GEdge { d: string; color: string; dim?: boolean }
           [attr.cx]="dragKey() === n.key ? dragX() : n.x"
           [attr.cy]="dragKey() === n.key ? dragY() : n.y"
           [attr.r]="dragKey() === n.key ? 9 : NODE_R"
-          [attr.fill]="n.color" stroke="#fff" stroke-width="2.5"
+          [attr.fill]="n.color | partColor" stroke="#fff" stroke-width="2.5"
           [attr.opacity]="(n.shadowed || n.active === false) ? 0.38 : 1" pointer-events="none"/>
       }
     }
@@ -107,7 +108,7 @@ interface GEdge { d: string; color: string; dim?: boolean }
       <p class="branch-origin">{{ branchOrigin(n) }}</p>
     }
     @if (n.part; as part) {
-      <section class="mobile-node" [style.--part-color]="n.color" [class.shadowed]="n.shadowed || n.active === false">
+      <section class="mobile-node" [style.--part-color]="n.color | partColor" [class.shadowed]="n.shadowed || n.active === false">
         <button type="button" class="mobile-title" (click)="editPart.emit({ ramaId: n.ramaId ?? null, index: n.mainIndex ?? n.partIndex! })">
           <small>{{ fmt(part.start) }} — {{ fmt(part.end) }}</small>
           <strong>{{ part.name || 'Parte' }}</strong>
@@ -149,8 +150,8 @@ interface GEdge { d: string; color: string; dim?: boolean }
     .graph-label strong{font-size:13px;color:var(--ink);line-height:1.5}
     .graph-tags{display:flex;gap:4px;flex-wrap:wrap;margin-top:2px}
     .graph-tags em{font-size:10px;font-style:normal;line-height:1.5;font-weight:600;padding:2px 6px;border-radius:5px;background:var(--tint);color:var(--tint-ink)}
-    .graph-tags .pink{background:#f0ecfa;color:#654698}
-    .graph-tags .tag-desfase{background:#e9f0fa;color:#365a86}
+    .graph-tags .pink{background:#f3ded3;color:var(--color-brand-dark)}
+    .graph-tags .tag-desfase{background:var(--color-yellow);color:#624516}
     .graph-tags .tag-on{background:#dcfce7!important;color:#15803d!important}
     .graph-tags .tag-off{background:#f1ede6!important;color:var(--muted)!important}
     .graph-hint{font-size:12px;line-height:1.7;color:var(--muted);margin:12px 0 0}

@@ -2,7 +2,7 @@ import { Component, ElementRef, inject, input, model, signal, viewChild } from '
 import { Observable, switchMap } from 'rxjs';
 import { DataService } from '../data.service';
 import { InfoView } from './info-view';
-import { MEDIA_ACCEPT } from './markdown';
+import { MEDIA_ACCEPT, isVideoUrl } from './markdown';
 
 interface Action { label: string; title: string; before: string; after?: string; placeholder: string; block?: boolean }
 
@@ -43,12 +43,25 @@ const ACTIONS: Action[] = [
       <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="m21 11-8.5 8.5a5 5 0 0 1-7-7L14 4a3.5 3.5 0 0 1 5 5l-8.5 8.5a2 2 0 0 1-3-3L15 7"/></svg>
       {{ uploading() ? 'Subiendo…' : 'Adjuntar' }}
     </label>
-    <button type="button" title="Incrustar vídeo de YouTube" (click)="apply(youtube)">▶ YouTube</button>
+    <button type="button" class="ie-video-btn" [class.on]="videoOpen()" title="Añadir un vídeo de YouTube o un archivo MP4" [attr.aria-expanded]="videoOpen()" (click)="videoOpen.set(!videoOpen())">▶ Vídeo</button>
     <div class="ie-mode" role="tablist">
       <button type="button" [class.on]="mode()==='write'" (click)="mode.set('write')">Escribir</button>
       <button type="button" [class.on]="mode()==='preview'" (click)="mode.set('preview')">Vista previa</button>
     </div>
   </div>
+
+  @if (videoOpen()) {
+    <div class="ie-video" role="group" aria-label="Añadir vídeo">
+      <label>Enlace del vídeo
+        <input type="url" [value]="videoUrl()" (input)="videoUrl.set($any($event.target).value)" (keydown.enter)="addVideo()" placeholder="https://www.youtube.com/watch?v=… o enlace a un .mp4" autocomplete="off">
+      </label>
+      <label>Título
+        <input type="text" [value]="videoTitle()" (input)="videoTitle.set($any($event.target).value)" (keydown.enter)="addVideo()" placeholder="Opcional. Ej. Salida del paso" autocomplete="off">
+      </label>
+      <button type="button" class="ie-video-add" [disabled]="!videoUrl().trim()" (click)="addVideo()">Insertar vídeo</button>
+      <p>También puedes subir un MP4 o WebM con <b>Adjuntar</b>, o arrastrarlo al texto.</p>
+    </div>
+  }
 
   @if (error()) { <div class="ie-error">{{ error() }}</div> }
 
@@ -63,7 +76,7 @@ const ACTIONS: Action[] = [
       <app-info-view [markdown]="markdown()" emptyText="La vista previa aparecerá aquí." />
     </div>
   </div>
-  <p class="ie-hint">Imágenes: <code>![pie](url)</code> · Vídeo, audio y YouTube usan la misma sintaxis: se detectan por la extensión o el enlace.</p>
+  <p class="ie-hint">Los vídeos se colocan donde tengas el cursor. Imágenes: <code>![pie](url)</code> · Vídeo, audio y YouTube usan la misma sintaxis: se detectan por la extensión o el enlace.</p>
 </section>
   `,
   styles: [`
@@ -79,6 +92,14 @@ const ACTIONS: Action[] = [
 .ie-toolbar>button,.ie-attach{position:relative;min-width:40px;min-height:40px;padding:8px 10px;border:1px solid var(--border);background:#fff;color:var(--ink);border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;display:inline-flex;align-items:center;justify-content:center;gap:6px;line-height:1.4}
 .ie-toolbar>button:hover,.ie-attach:hover{background:var(--tint);border-color:var(--tint-border);color:var(--blue)}
 .ie-attach input{position:absolute;width:1px;height:1px;opacity:0}.ie-attach:focus-within{outline:3px solid var(--blue);outline-offset:3px}.ie-attach.busy{opacity:.6;pointer-events:none}
+.ie-toolbar>button.ie-video-btn.on{background:var(--tint);border-color:var(--tint-border);color:var(--blue)}
+.ie-video{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr) auto;gap:12px;align-items:end;padding:14px;border:1px solid var(--surface-glass-border);border-radius:16px;background:var(--surface-glass);box-shadow:var(--shadow-glass)}
+.ie-video label{display:grid;gap:6px;min-width:0;font-size:12px;font-weight:600;color:var(--muted)}
+.ie-video input{width:100%;min-height:44px;padding:10px 14px;border:1px solid var(--border);border-radius:100px;background:#fffdf8c9;font-size:14px;color:var(--ink)}
+.ie-video-add{min-height:44px;padding:0 20px;border:0;border-radius:100px;background:var(--color-brand);color:#fff;font-weight:700;font-size:14px;cursor:pointer}
+.ie-video-add:disabled{opacity:.45;cursor:not-allowed}
+.ie-video p{grid-column:1/-1;margin:0;font-size:11px;color:var(--muted)}
+@container (max-width: 700px){.ie-video{grid-template-columns:1fr}.ie-video-add{width:100%}}
 .ie-sep{width:1px;height:22px;background:var(--border);margin:0 4px}
 .ie-toolbar .b{font-weight:900}.ie-toolbar .i{font-style:italic;font-family:Georgia,serif}
 .ie-mode{margin-left:auto;display:none;background:#f2ede6;border-radius:9px;padding:3px;gap:2px}
@@ -115,7 +136,6 @@ export class InfoEditor {
   ensureSong = input.required<() => Observable<number>>();
 
   actions = ACTIONS;
-  youtube: Action = { label: '', title: '', before: '![', after: '](https://www.youtube.com/watch?v=)', placeholder: 'Título del vídeo', block: true };
   accept = MEDIA_ACCEPT;
 
   private ta = viewChild.required<ElementRef<HTMLTextAreaElement>>('ta');
@@ -123,6 +143,24 @@ export class InfoEditor {
   uploading = signal(false);
   dragging = signal(false);
   error = signal('');
+  videoOpen = signal(false);
+  videoUrl = signal('');
+  videoTitle = signal('');
+
+  /** Inserta un vídeo (YouTube o .mp4/.webm) en el cursor. */
+  addVideo() {
+    const url = this.videoUrl().trim();
+    if (!isVideoUrl(url)) {
+      this.error.set('El enlace debe ser de YouTube o de un archivo .mp4 / .webm.');
+      return;
+    }
+    this.error.set('');
+    const title = this.videoTitle().trim().replace(/[\[\]]/g, '');
+    this.insertBlock(`![${title}](${url})`);
+    this.videoUrl.set('');
+    this.videoTitle.set('');
+    this.videoOpen.set(false);
+  }
 
   /** Inserta/envuelve la selección con la sintaxis Markdown de la acción. */
   apply(a: Action) {

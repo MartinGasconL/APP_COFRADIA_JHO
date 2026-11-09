@@ -13,7 +13,7 @@ import { DataService } from '../data.service';
   <a class="skip-link" href="#contenido">Saltar al contenido</a>
   <aside id="navigation" [cdkTrapFocus]="navOpen()">
     <header>
-      <i aria-hidden="true">♬</i>
+      <img class="brand-logo" src="logo.png" alt="" aria-hidden="true">
       <span><b>Cofradía</b><small>Repertorio</small></span>
       <button type="button" class="nav-close" (click)="closeNav()" aria-label="Cerrar menú">×</button>
     </header>
@@ -24,7 +24,7 @@ import { DataService } from '../data.service';
       <a routerLink="/administracion/canciones" routerLinkActive="active" ariaCurrentWhenActive="page" (click)="navOpen.set(false)"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>Canciones</a>
       <a routerLink="/administracion/estudio" routerLinkActive="active" ariaCurrentWhenActive="page" (click)="navOpen.set(false)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3v18M12 3v18M19 3v18M2 8h6M9 16h6M16 9h6"/></svg>Estudio</a>
     </nav>
-    <div class="sidebar-footer"><span>ASOCIACIÓN</span><p>Tambores y bombos</p></div>
+    <div class="sidebar-footer"><div class="community-mark" aria-hidden="true">♬</div><span>NUESTRO COMPÁS</span><p>Tambores y bombos.<br>Una misma voz.</p><small>Espacio de la asociación</small></div>
   </aside>
 
   <div class="scrim" (click)="closeNav()" aria-hidden="true"></div>
@@ -34,13 +34,18 @@ import { DataService } from '../data.service';
       <button type="button" class="icon-btn menu" (click)="navOpen.set(!navOpen())" aria-label="Abrir menú" [attr.aria-expanded]="navOpen()" aria-controls="navigation">
         <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M4 7h16M4 12h16M4 17h16"/></svg>
       </button>
-      <span class="topbar-title">Asociación de tambores y bombos</span>
+      <span class="topbar-title"><b>Cofradía</b><span> / </span>Espacio de socios</span><span class="topbar-caption">Tambores y bombos</span>
       <button type="button" class="icon-btn user" (click)="logout()" title="Cerrar sesión" aria-label="Cerrar sesión">
         <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M9 4H4v16h5M10 12h10m-4-4 4 4-4 4"/></svg>
       </button>
     </div>
     <article class="page-content" id="contenido" tabindex="-1"><router-outlet /></article>
   </main>
+  <div class="mobile-dock" role="group" aria-label="Accesos principales" [class.dock-hidden]="navOpen()">
+    <a routerLink="/repertorio" routerLinkActive="active" ariaCurrentWhenActive="page"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18V5l11-2v13M9 8l11-2"/><ellipse cx="6" cy="18" rx="3" ry="2"/><ellipse cx="17" cy="16" rx="3" ry="2"/></svg><span>Repertorio</span></a>
+    <a routerLink="/administracion/canciones" routerLinkActive="active" ariaCurrentWhenActive="page"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg><span>Canciones</span></a>
+    <a routerLink="/administracion/estudio" routerLinkActive="active" ariaCurrentWhenActive="page"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3v18M12 3v18M19 3v18M2 8h6M9 16h6M16 9h6"/></svg><span>Estudio</span></a>
+  </div>
 </div>
   `,
   styleUrl: './shell.scss',

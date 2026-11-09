@@ -1,0 +1,25 @@
+// Apply blur only to selected containers; repeated cards use a simple soft fill.
+@mixin glass {
+  background: var(--surface-solid);
+  border: 1px solid var(--surface-glass-border);
+  box-shadow: var(--shadow-glass);
+
+  @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    background: var(--surface-glass);
+    -webkit-backdrop-filter: blur(var(--glass-blur));
+    backdrop-filter: blur(var(--glass-blur));
+  }
+
+  @media (prefers-reduced-transparency: reduce) {
+    background: var(--surface-solid);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
+@mixin dialog {
+  background: var(--surface-solid);
+  border: 1px solid var(--surface-glass-border);
+  border-radius: var(--radius-panel);
+  box-shadow: var(--shadow-dialog);
+}

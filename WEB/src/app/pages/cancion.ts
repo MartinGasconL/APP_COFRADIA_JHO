@@ -1,3 +1,4 @@
+import { PartColorPipe } from '../part-color.pipe';
 import { Component, computed, effect, inject, OnDestroy, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
@@ -7,7 +8,7 @@ import { AudioEngine } from '../audio-engine';
 import { InfoView } from '../info/info-view';
 
 @Component({
-  imports: [CommonModule, FormsModule, RouterLink, InfoView],
+  imports: [PartColorPipe, CommonModule, FormsModule, RouterLink, InfoView],
   template: `
 @if (song(); as s) {
 <a class="back" routerLink="/repertorio">← Repertorio</a>
@@ -22,33 +23,40 @@ import { InfoView } from '../info/info-view';
     <strong>{{ fmt(engine.position()) }} / {{ fmt(engine.duration()) }}</strong>
   </div>
 
-  <label>Pista
-    <select [ngModel]="selectedTrack()" (ngModelChange)="selectedTrack.set($event)" [disabled]="!availableTracks().length">
-      @for (t of availableTracks(); track t) {<option [ngValue]="t">{{ labels[t] }}</option>}
-      @if (!availableTracks().length) {<option [ngValue]="null">Sin audio</option>}
-    </select>
-  </label>
+  <div class="ctl">
+    <span class="ctl-title" id="pistas-title">Pistas</span>
+    <div class="track-box" role="group" aria-labelledby="pistas-title">
+      @for (b of trackButtons; track b.key) {
+        <button type="button" class="track-seg"
+          [class.on]="isOn(b.key)" [class.locked]="!hasTrack(b.key)"
+          [disabled]="!hasTrack(b.key)" [attr.aria-pressed]="hasTrack(b.key) ? isOn(b.key) : null"
+          [attr.aria-label]="b.label + (hasTrack(b.key) ? '' : ' (sin pista)')"
+          [title]="hasTrack(b.key) ? b.label : 'Esta canción no tiene pista de ' + b.label.toLowerCase()"
+          (click)="toggleTrack(b.key)">
+          <img [src]="b.img" alt="" width="30" height="30">
+          <span><b>{{ b.label }}</b>@if (!hasTrack(b.key)) { <em>sin pista</em> }</span>
+        </button>
+      }
+    </div>
+  </div>
 
-  <label>Velocidad
-    <select [ngModel]="engine.rate()" (ngModelChange)="engine.setRate($event)">
-      <option [ngValue]="0.75">0,75×</option>
-      <option [ngValue]="1">1×</option>
-      <option [ngValue]="1.25">1,25×</option>
-      <option [ngValue]="1.5">1,5×</option>
-    </select>
-  </label>
+  <div class="ctl">
+    <span class="ctl-title">Velocidad</span>
+    <button type="button" class="rate-btn" (click)="nextRate()" [attr.aria-label]="'Velocidad ' + rateLabel() + '. Pulsa para cambiarla'" title="Pulsa para cambiar la velocidad">
+      <b>{{ rateLabel() }}</b>
+      <span class="rate-bars" aria-hidden="true">@for (i of [0, 1, 2, 3]; track i) { <i [class.on]="i <= rateStep()"></i> }</span>
+    </button>
+  </div>
 
   <div class="progress" (click)="scrub($event)"><span [style.width.%]="pct()"></span></div>
 
   @if (engine.loading()) { <small>Cargando audio…</small> }
   @else if (converting()) { <small>Convirtiendo audio subido, estará disponible en unos segundos…</small> }
   @else if (engine.error()) { <small>{{ engine.error() }}</small> }
-  @else { <small class="ok">Pulsa una parte del cronograma para escuchar ese fragmento.</small> }
 </section>
 
 <div class="tabs" role="tablist">
   <button type="button" role="tab" [class.on]="tab() === 'cancion'" [attr.aria-selected]="tab() === 'cancion'" (click)="tab.set('cancion')">Canción</button>
-  <span>Práctica <em>Fase 2</em></span>
   <button type="button" role="tab" [class.on]="tab() === 'info'" [attr.aria-selected]="tab() === 'info'" (click)="tab.set('info')">Información</button>
 </div>
 
@@ -72,7 +80,7 @@ import { InfoView } from '../info/info-view';
     <button class="part"
       [class.playing]="engine.position() >= part.start && engine.position() < part.end"
       [class.selected]="selectedPart() === part"
-      [style.--c]="part.color" (click)="playPart(part)">
+      [style.--c]="part.color | partColor" (click)="playPart(part)">
       <i><u></u></i>
       <div>
         <small>{{ fmt(part.start) }} — {{ fmt(part.end) }}</small>
@@ -118,7 +126,16 @@ export class Cancion implements OnInit, OnDestroy {
   private id = Number(this.route.snapshot.paramMap.get('id'));
   song = computed(() => this.data.find(this.id));
   selectedPart = signal<Parte | null>(null);
-  selectedTrack = signal<Track | null>(null);
+  /** Pistas marcadas (multiselección): suenan a la vez. */
+  selectedTracks = signal<Track[]>([]);
+
+  /** Botones fijos del selector. Las pistas que la canción no tenga salen bloqueadas. */
+  readonly trackButtons: { key: string; label: string; img: string }[] = [
+    { key: 'tambor', label: 'Tambor', img: 'pistas/bombo.png' },
+    { key: 'bombo', label: 'Bombo', img: 'pistas/tambor.png' },
+    { key: 'corneta', label: 'Corneta', img: 'pistas/corneta.png' },
+  ];
+  private readonly mainKeys = this.trackButtons.map(b => b.key);
 
   private poll?: number;
 
@@ -134,20 +151,20 @@ export class Cancion implements OnInit, OnDestroy {
   });
 
   constructor() {
-    // Mantén una pista válida seleccionada.
+    // Mantén la selección dentro de las pistas disponibles; por defecto, todas las principales.
     effect(() => {
       const avail = this.availableTracks();
-      if (avail.length && !avail.includes(this.selectedTrack() as Track)) {
-        this.selectedTrack.set(avail[0]);
-      } else if (!avail.length && this.selectedTrack() !== null) {
-        this.selectedTrack.set(null);
+      const sel = this.selectedTracks();
+      const valid = sel.filter(t => avail.includes(t));
+      if (valid.length !== sel.length) {
+        this.selectedTracks.set(valid);
+      } else if (!valid.length && avail.length) {
+        const main = avail.filter(t => this.mainKeys.includes(t));
+        this.selectedTracks.set(main.length ? main : [avail[0]]);
       }
     });
-    // Solo suena la pista seleccionada.
-    effect(() => {
-      const t = this.selectedTrack();
-      this.engine.setActiveTracks(t ? [t] : []);
-    });
+    // Suenan todas las pistas marcadas a la vez.
+    effect(() => this.engine.setActiveTracks(this.selectedTracks()));
   }
 
   ngOnInit() {
@@ -171,19 +188,53 @@ export class Cancion implements OnInit, OnDestroy {
     this.engine.release();
   }
 
+  private readonly rates = [0.75, 1, 1.25, 1.5];
+
+  rateStep() {
+    return Math.max(0, this.rates.indexOf(this.engine.rate()));
+  }
+
+  rateLabel() {
+    return String(this.engine.rate()).replace('.', ',') + '×';
+  }
+
+  /** Sube un escalón de velocidad; tras el más rápido vuelve al más lento. */
+  nextRate() {
+    const i = this.rates.indexOf(this.engine.rate());
+    this.engine.setRate(this.rates[(i + 1) % this.rates.length]);
+  }
+
+  hasTrack(key: string) {
+    return this.availableTracks().includes(key as Track);
+  }
+
+  isOn(key: string) {
+    return this.selectedTracks().includes(key as Track);
+  }
+
+  /** Marca o desmarca una pista. Siempre queda al menos una marcada. */
+  toggleTrack(key: string) {
+    const t = key as Track;
+    if (!this.hasTrack(key)) return;
+    const sel = this.selectedTracks();
+    if (!sel.includes(t)) this.selectedTracks.set([...sel, t]);
+    else if (sel.length > 1) this.selectedTracks.set(sel.filter(x => x !== t));
+  }
+
   toggle() {
     this.engine.playing() ? this.engine.pause() : this.engine.play();
   }
 
   playPart(part: Parte) {
     this.selectedPart.set(part);
-    const track = this.selectedTrack();
-    if (!track || !this.engine.loadedTracks().includes(track)) return;
-    // Reproduce el tramo de esta parte en la pista elegida (su intervalo propio si lo tiene).
-    const own = part.tracks.find(t => t.track === track);
-    const from = own ? own.start : part.start;
-    const to = own ? own.end : part.end;
-    this.engine.play(from, to, [{ track, start: from, end: to }]);
+    const loaded = this.engine.loadedTracks();
+    const wins = this.selectedTracks().filter(t => loaded.includes(t)).map(track => {
+      // Intervalo propio de la pista dentro de la parte, si lo tiene.
+      const own = part.tracks.find(t => t.track === track);
+      return { track, start: own ? own.start : part.start, end: own ? own.end : part.end };
+    });
+    if (!wins.length) return;
+    this.engine.play(Math.min(...wins.map(w => w.start)), Math.max(...wins.map(w => w.end)), wins);
   }
 
   scrub(event: MouseEvent) {

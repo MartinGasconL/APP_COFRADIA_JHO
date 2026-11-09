@@ -1,3 +1,6 @@
+@use '../../styles/controls';
+@use '../../styles/surfaces';
+
 :where(.page-content) {
   // Estilos compartidos, cargados una sola vez y limitados al contenido de la aplicación.
 
@@ -31,21 +34,8 @@
     font-size: 14px;
   }
   .head > a {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
+    @include controls.primary;
     align-self: center;
-    min-height: 44px;
-    padding: 11px 18px;
-    border-radius: 9px;
-    background: var(--blue);
-    color: #fff;
-    font-size: 14px;
-    font-weight: 600;
-    text-decoration: none;
-  }
-  .head > a:hover {
-    background: var(--navy);
   }
   .back {
     display: inline-flex;
@@ -68,16 +58,7 @@
   /* Campos con tamaños y espaciados coherentes en todos los formularios. */
   :is(.section, .part-modal, .filters, .player, .clone-row)
     :where(input:not([type='checkbox']):not([type='file']), select, textarea) {
-    width: 100%;
-    min-height: 44px;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 10px 12px;
-    color: var(--ink);
-    background: #fff;
-    font-size: 14px;
-    font-weight: 400;
-    line-height: 1.5;
+    @include controls.field;
   }
   :where(select) {
     padding-right: 30px;
@@ -88,7 +69,7 @@
     resize: vertical;
   }
   :where(input:hover, select:hover, textarea:hover) {
-    border-color: #cbbab6;
+    border-color: var(--color-brand);
   }
   :where(label) {
     min-width: 0;
@@ -206,13 +187,13 @@
   .songs p b.pink,
   .part em.pink,
   .side-flags em.pink {
-    background: #f0ecfa;
-    color: #654698;
+    background: #f3ded3;
+    color: var(--color-brand-dark);
   }
   .songs p b.tag-desfase,
   .part em.tag-desfase {
-    background: #e9f0fa;
-    color: #365a86;
+    background: var(--color-yellow);
+    color: #624516;
   }
   .songs aside {
     text-align: right;
@@ -805,6 +786,208 @@
     color: var(--blue);
     line-height: 1;
   }
+  .info-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 18px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  .info-head span {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1.4px;
+    color: var(--color-brand);
+  }
+  .info-head h2 {
+    margin: 3px 0 0;
+    font-size: 18px;
+  }
+  .info-card .info-head {
+    margin-bottom: 8px;
+    padding-bottom: 0;
+    border-bottom: 0;
+  }
+  .info-peek {
+    max-height: 260px;
+    margin-top: 14px;
+    padding: 18px 22px;
+    overflow: auto;
+    border: 1px solid var(--surface-glass-border);
+    border-radius: 18px;
+    background: rgb(255 249 235 / 55%);
+  }
+  .info-edit {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 42px;
+    padding: 0 18px;
+    border: 1px solid var(--surface-glass-border);
+    border-radius: 100px;
+    background: var(--surface-solid);
+    box-shadow: var(--shadow-glass);
+    color: var(--color-brand);
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    @supports (backdrop-filter: blur(1px)) {
+      background: rgb(255 249 235 / 46%);
+      -webkit-backdrop-filter: blur(var(--glass-blur));
+      backdrop-filter: blur(var(--glass-blur));
+    }
+  }
+  .info-edit:hover {
+    border-color: var(--tint-border);
+    background: rgb(145 0 0 / 8%);
+  }
+
+  /* Controles del reproductor: título pequeño encima y caja de cristal baja y alargada. */
+  .ctl {
+    display: grid;
+    gap: 6px;
+  }
+  .ctl-title {
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .track-box,
+  .player button.rate-btn {
+    border: 1px solid var(--surface-glass-border);
+    border-radius: 16px;
+    background: var(--surface-solid);
+    box-shadow: var(--shadow-glass);
+    @supports (backdrop-filter: blur(1px)) {
+      background: rgb(255 249 235 / 46%);
+      -webkit-backdrop-filter: blur(var(--glass-blur));
+      backdrop-filter: blur(var(--glass-blur));
+    }
+  }
+  .track-box {
+    display: flex;
+    align-items: center;
+    height: 46px;
+    padding: 3px;
+  }
+  .player button.track-seg {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: auto;
+    height: 38px;
+    padding: 0 16px 0 10px;
+    border: 1px solid transparent;
+    border-radius: 13px;
+    background: transparent;
+    color: var(--muted);
+    font-size: 13px;
+    transition:
+      background var(--motion-fast),
+      border-color var(--motion-fast);
+  }
+  .track-seg + .track-seg::before {
+    content: '';
+    position: absolute;
+    left: -1px;
+    top: 22%;
+    bottom: 22%;
+    width: 1px;
+    background: var(--tint-border);
+  }
+  .track-seg img {
+    flex: none;
+    width: 30px;
+    height: 30px;
+    object-fit: contain;
+    opacity: 0.55;
+    filter: saturate(0.6) drop-shadow(0 2px 3px rgb(74 10 10 / 18%));
+    transition:
+      opacity var(--motion-fast),
+      filter var(--motion-fast);
+  }
+  .track-seg span {
+    display: grid;
+    text-align: left;
+    line-height: 1.15;
+  }
+  .track-seg b {
+    font-weight: 700;
+  }
+  .track-seg em {
+    font-style: normal;
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+  }
+  .player button.track-seg:hover:not(:disabled):not(.on) {
+    background: rgb(145 0 0 / 5%);
+  }
+  .player button.track-seg:hover:not(:disabled) img {
+    opacity: 0.85;
+  }
+  .player button.track-seg.on {
+    background: rgb(145 0 0 / 10%);
+    border-color: var(--tint-border);
+    color: var(--color-brand-dark);
+  }
+  .track-seg.on img {
+    opacity: 1;
+    filter: drop-shadow(0 2px 4px rgb(74 10 10 / 28%));
+  }
+  /* Pista inexistente: solo apagada y sin interacción. */
+  .player button.track-seg.locked {
+    cursor: not-allowed;
+    color: #ab9f9a;
+  }
+  .track-seg.locked img {
+    opacity: 0.3;
+    filter: grayscale(1);
+  }
+  /* Velocidad: cada pulsación sube un escalón (las barras indican el nivel). */
+  .player button.rate-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    width: auto;
+    min-width: 92px;
+    height: 46px;
+    padding: 0 16px;
+    color: var(--color-brand-dark);
+    font-variant-numeric: tabular-nums;
+    transition: border-color var(--motion-fast);
+  }
+  .player button.rate-btn:hover {
+    border-color: var(--tint-border);
+  }
+  .rate-btn b {
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+  }
+  .rate-bars {
+    display: inline-flex;
+    align-items: flex-end;
+    gap: 3px;
+    height: 16px;
+  }
+  .rate-bars i {
+    width: 4px;
+    border-radius: 2px;
+    background: var(--tint-border);
+    transition: background var(--motion-fast);
+  }
+  .rate-bars i:nth-child(1) { height: 6px; }
+  .rate-bars i:nth-child(2) { height: 9px; }
+  .rate-bars i:nth-child(3) { height: 12px; }
+  .rate-bars i:nth-child(4) { height: 16px; }
+  .rate-bars i.on {
+    background: var(--color-brand);
+  }
   .player button.play,
   .range-transport button.play {
     background: var(--blue);
@@ -1063,12 +1246,10 @@
     min-width: 0;
     overflow-y: auto;
     overscroll-behavior: contain;
-    border-radius: 16px;
+    @include surfaces.dialog;
     padding: 24px;
     display: grid;
     gap: 20px;
-    background: #fff;
-    box-shadow: 0 20px 80px #21151b30;
   }
   .part-modal header {
     display: flex;
@@ -1106,19 +1287,10 @@
     padding-top: 18px;
   }
   .part-modal footer button {
-    min-height: 44px;
-    padding: 10px 16px;
-    border: 1px solid var(--blue);
-    border-radius: 8px;
-    background: var(--blue);
-    color: #fff;
-    font-size: 14px;
-    font-weight: 600;
+    @include controls.primary;
   }
   .part-modal footer .outline {
-    color: var(--blue);
-    background: #fff;
-    border-color: var(--tint-border);
+    @include controls.secondary;
   }
   .part-range,
   .part-tracks,

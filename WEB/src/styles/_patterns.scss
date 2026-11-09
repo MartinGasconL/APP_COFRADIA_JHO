@@ -1,0 +1,21 @@
+@use './surfaces';
+@use './controls';
+
+.card {
+  background: var(--surface-solid);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-panel);
+  box-shadow: var(--shadow-soft);
+}
+
+.glass-panel {
+  @include surfaces.glass;
+  border-radius: var(--radius-panel);
+}
+
+.primary-btn {
+  @include controls.primary;
+}
+.outline {
+  @include controls.secondary;
+}

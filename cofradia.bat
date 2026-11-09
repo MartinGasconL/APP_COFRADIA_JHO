@@ -3,7 +3,7 @@ setlocal
 title Cofradia - Repertorio
 
 set "APP_ROOT=%~dp0"
-set "WEB_DIR=%APP_ROOT%WEB\web-cofradia"
+set "WEB_DIR=%APP_ROOT%WEB"
 set "API_DIR=%APP_ROOT%API"
 
 echo.
@@ -78,6 +78,26 @@ REM --- 2) Backend (Spring Boot, puerto 8080) en ventana propia ---
 echo  [2/3] Arrancando el backend (Spring Boot) en una ventana nueva...
 start "Cofradia - API" cmd /k "cd /d ""%API_DIR%"" && mvn.cmd spring-boot:run"
 
+REM --- IPs privadas de este PC; el certificado HTTPS debe incluirlas todas (si no, la tablet lo rechaza) ---
+set "GIT_HOME="
+if exist "%ProgramFiles%\Git\bin\bash.exe" set "GIT_HOME=%ProgramFiles%\Git"
+if not defined GIT_HOME if exist "%LOCALAPPDATA%\Programs\Git\bin\bash.exe" set "GIT_HOME=%LOCALAPPDATA%\Programs\Git"
+if defined GIT_HOME set "PATH=%GIT_HOME%\usr\bin;%PATH%"
+set "LAN_IPS="
+set "NEED_CERT="
+for /f "tokens=2 delims=:" %%A in ('ipconfig ^| findstr /r /c:"IPv4.*192\.168\." /c:"IPv4.*10\." /c:"IPv4.*172\.1[6-9]\." /c:"IPv4.*172\.2[0-9]\." /c:"IPv4.*172\.3[0-1]\."') do call :addip %%A
+if not defined NEED_CERT goto cert_ok
+if not defined GIT_HOME (
+  echo  AVISO: Git for Windows no encontrado; no se puede regenerar el certificado HTTPS.
+  goto cert_ok
+)
+echo  Regenerando el certificado HTTPS para: %LAN_IPS%
+pushd "%WEB_DIR%\certs"
+"%GIT_HOME%\bin\bash.exe" generate.sh %LAN_IPS% 10.8.0.4 100.100.183.6 >nul 2>&1
+if errorlevel 1 echo  AVISO: no se pudo regenerar el certificado.
+popd
+:cert_ok
+
 REM --- 3) Frontend (Angular, puerto 4300) en ventana propia ---
 echo  [3/3] Arrancando el frontend (Angular) en una ventana nueva...
 if not exist "%WEB_DIR%\node_modules" (
@@ -93,23 +113,16 @@ if not exist "%WEB_DIR%\node_modules" (
   )
   popd
 )
-REM --ssl: HTTPS. Imprescindible para grabar audio (micrófono) desde el móvil; los navegadores
+REM --ssl: HTTPS. Imprescindible para grabar audio (microfono) desde el movil; los navegadores
 REM solo permiten getUserMedia en contexto seguro (https o localhost).
 start "Cofradia - Web" cmd /k "cd /d ""%WEB_DIR%"" && npx.cmd ng serve --host 0.0.0.0 --port 4300 --ssl"
-
-REM --- IP de la red local para abrir la web desde el movil ---
-set "LAN_IP="
-for /f "tokens=2 delims=:" %%A in ('ipconfig ^| findstr /r /c:"IPv4.*192\.168\." /c:"IPv4.*10\." /c:"IPv4.*172\.1[6-9]\." /c:"IPv4.*172\.2[0-9]\." /c:"IPv4.*172\.3[0-1]\."') do (
-  if not defined LAN_IP set "LAN_IP=%%A"
-)
-if defined LAN_IP set "LAN_IP=%LAN_IP: =%"
 
 echo.
 echo  Servicios lanzados:
 echo    - Base de datos : localhost:3307  (contenedor cofradia-db)
 echo    - Backend       : http://localhost:8080
 echo    - Frontend      : https://localhost:4300
-if defined LAN_IP echo    - Desde el movil (misma wifi): https://%LAN_IP%:4300
+for %%I in (%LAN_IPS%) do echo    - Desde el movil/tablet (misma wifi): https://%%I:4300
 echo.
 echo  La API solo se usa por dentro (proxy de ng serve), no hace falta abrir el 8080.
 echo.
@@ -137,3 +150,11 @@ echo  Para detener la base de datos:  cd API ^&^& docker compose down
 echo.
 pause
 endlocal
+exit /b
+
+:addip
+set "IP=%~1"
+set "LAN_IPS=%LAN_IPS% %IP%"
+if defined GIT_HOME openssl x509 -in "%WEB_DIR%\certs\dev.crt" -noout -ext subjectAltName 2>nul | findstr /r /c:"IP Address:%IP%," /c:"IP Address:%IP%$" >nul
+if defined GIT_HOME if errorlevel 1 set "NEED_CERT=1"
+goto :eof

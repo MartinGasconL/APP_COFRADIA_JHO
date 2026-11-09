@@ -12,6 +12,7 @@ const screens = [
 ] as const;
 
 async function assertLayout(page: Page) {
+  await page.evaluate(() => document.fonts.ready.then(() => undefined));
   await expect(page.locator('vite-error-overlay')).toHaveCount(0);
   const problems = await page.evaluate(() => {
     const issues: string[] = [];
@@ -21,7 +22,7 @@ async function assertLayout(page: Page) {
     const visible = (el: HTMLElement) =>
       !!el.getClientRects().length && getComputedStyle(el).visibility !== 'hidden';
     for (const el of document.querySelectorAll<HTMLElement>(
-      '.card, .head, .form-actions, .track-card, .mobile-node, [role="dialog"]',
+      '.card, .glass-panel, .head, .form-actions, .track-card, .mobile-node, [role="dialog"]',
     )) {
       if (!visible(el)) continue;
       const rect = el.getBoundingClientRect();

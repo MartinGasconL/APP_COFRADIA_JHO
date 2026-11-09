@@ -1,3 +1,4 @@
+import { PartColorPipe } from '../part-color.pipe';
 import { Component, OnDestroy, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { A11yModule } from '@angular/cdk/a11y';
@@ -8,7 +9,8 @@ import { DataService, Parte, ParteTrack, Song, TrackInfo, TRACKS, Track, TRACK_L
 import { RecorderDialog } from './recorder-dialog';
 import { PartRangeBar, TimeRange } from './part-range-bar';
 import { AudioEngine, TrackWindow } from '../audio-engine';
-import { InfoEditor } from '../info/info-editor';
+import { InfoView } from '../info/info-view';
+import { InfoEditorDialog } from '../info/info-editor-dialog';
 
 const COLORS = ['#910000', '#6d28d9', '#0e7490', '#c2410c', '#15803d', '#a16207'];
 const LABEL = TRACK_LABEL;
@@ -17,7 +19,7 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 @Component({
-  imports: [CommonModule, FormsModule, RouterLink, RecorderDialog, PartRangeBar, InfoEditor, A11yModule],
+  imports: [PartColorPipe, CommonModule, FormsModule, RouterLink, RecorderDialog, PartRangeBar, InfoView, InfoEditorDialog, A11yModule],
   template: `
 @if (!ready()) {
   <a class="back" routerLink="/administracion/canciones">← Canciones</a>
@@ -48,7 +50,23 @@ const STATUS_LABEL: Record<string, string> = {
       </div>
     </section>
 
-    <app-info-editor [(markdown)]="song.info" [ensureSong]="ensureSaved" />
+    <section class="card section info-card">
+      <div class="info-head">
+        <div>
+          <span>INFORMACIÓN DE LA CANCIÓN</span>
+          <h2>Consejos e indicaciones</h2>
+        </div>
+        <button type="button" class="info-edit" (click)="infoOpen.set(true)" title="Abrir editor" aria-label="Abrir editor de información">
+          <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16v4ZM13.5 6.5l4 4"/></svg>
+          Abrir editor
+        </button>
+      </div>
+      <p class="section-help">Es lo que verán los socios en la pestaña Información de esta canción.</p>
+      <div class="info-peek"><app-info-view [markdown]="song.info" emptyText="Aún no hay información. Pulsa «Abrir editor» para escribirla." /></div>
+    </section>
+    @if (infoOpen()) {
+      <app-info-editor-dialog [markdown]="song.info" [title]="song.title || 'Nueva canción'" [ensureSong]="ensureSaved" [saveFn]="saveInfo" (closed)="infoOpen.set(false)" />
+    }
 
     <section class="card section">
       <h2>Pistas</h2>
@@ -92,7 +110,7 @@ const STATUS_LABEL: Record<string, string> = {
       <div class="parts-list">
         @for (part of song.partes; track $index; let index = $index) {
         <button (click)="openPart(index)">
-          <i [style.background]="part.color"></i>
+          <i [style.background]="part.color | partColor"></i>
           <span><b>{{ part.name }}</b><small>{{ fmt(part.start) }} — {{ fmt(part.end) }} · {{ part.note || 'Sin nota' }}</small></span>
           <em>{{ part.tracks.length }} pistas</em>
           <strong>Editar ›</strong>
@@ -132,7 +150,7 @@ const STATUS_LABEL: Record<string, string> = {
             [class.available]="!!r"
             [style.left.%]="(r ? r.start : part.start) / song.duration * 100"
             [style.width.%]="((r ? r.end : part.end) - (r ? r.start : part.start)) / song.duration * 100"
-            [style.--part-color]="part.color" [title]="part.name + ' · ' + fmt(r ? r.start : part.start) + ' — ' + fmt(r ? r.end : part.end)" [attr.aria-label]="'Editar ' + part.name" (click)="openPart($index)">
+            [style.--part-color]="part.color | partColor" [title]="part.name + ' · ' + fmt(r ? r.start : part.start) + ' — ' + fmt(r ? r.end : part.end)" [attr.aria-label]="'Editar ' + part.name" (click)="openPart($index)">
             <span>{{ part.name }}</span>
           </button>
           }
@@ -349,6 +367,14 @@ export class CancionForm implements OnInit, OnDestroy {
   }
 
   /** Id de la canción; si es nueva la crea antes (para poder subir archivos incrustados a la información). */
+  infoOpen = signal(false);
+
+  /** Aplica el texto del editor a la canción; si ya existe, la guarda. Si es nueva, se guardará con ella. */
+  saveInfo = (info: string): Observable<unknown> => {
+    this.song.info = info;
+    return this.song.id ? this.data.update(this.song) : of(null);
+  };
+
   ensureSaved = (): Observable<number> => {
     if (this.song.id) return of(this.song.id);
     if (!this.song.title.trim()) return throwError(() => new Error('Ponle un título a la canción antes de subir archivos.'));
